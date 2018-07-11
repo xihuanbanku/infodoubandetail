@@ -26,7 +26,7 @@ class MovieGatherSpider(scrapy.Spider):
         self.cur = self.db.cursor()
     #读取库里URL任务并更新状态
     def get_movie_links(self):
-        links_sql = 'select url from public.tb_movie_url_task where flag=0'
+        links_sql = 'select url from public.tb_movie_url_task where flag=0 limit 50'
         self.loggerWithTime(links_sql)
         self.cur.execute(links_sql)
         links = self.cur.fetchall()
