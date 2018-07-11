@@ -41,6 +41,10 @@ class MovieGatherSpider(scrapy.Spider):
             movie_item['url'] = movie_link
             movie_item['uid'] = re.sub("\D", "",movie_link)
             page_html = requests.get(url =movie_link,cookies = self.cookie).content
+            if page_html.find("检测到有异常请求") >=0:
+                self.loggerWithTime(page_html)
+                time.sleep(300)
+                break
             parser = MovieParser(page_html)
             for field in movie_item.fields.keys(): #遍历item中的字段获取到对应字段的值
                 if hasattr(parser,field):
