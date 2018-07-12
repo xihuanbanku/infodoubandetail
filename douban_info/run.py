@@ -5,7 +5,8 @@ import time
 from scrapy import cmdline
 
 while True:
+# if 1:
     # cmdline.execute('scrapy crawl videowebset'.split())
-    subprocess.call('scrapy crawl douban_info --nolog', shell=True)
     print("starting")
-    time.sleep(5)
+    subprocess.call('scrapy crawl douban_info --nolog', shell=True)
+    time.sleep(30)

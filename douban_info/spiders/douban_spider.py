@@ -2,6 +2,7 @@
 # coding=utf-8
 import re
 import time
+from random import random
 
 import psycopg2
 import requests
@@ -26,7 +27,7 @@ class MovieGatherSpider(scrapy.Spider):
         self.cur = self.db.cursor()
     #读取库里URL任务并更新状态
     def get_movie_links(self):
-        links_sql = 'select url from public.tb_movie_url_task where flag=0 limit 50'
+        links_sql = 'select url from public.tb_movie_url_task where flag=0 limit 20'
         self.loggerWithTime(links_sql)
         self.cur.execute(links_sql)
         links = self.cur.fetchall()
@@ -43,7 +44,8 @@ class MovieGatherSpider(scrapy.Spider):
             page_html = requests.get(url =movie_link,cookies = self.cookie).content
             if page_html.find("检测到有异常请求") >=0:
                 self.loggerWithTime(page_html)
-                time.sleep(300)
+                self.loggerWithTime("开始休眠")
+                time.sleep(random.randrange(10, 180))
                 break
             parser = MovieParser(page_html)
             for field in movie_item.fields.keys(): #遍历item中的字段获取到对应字段的值

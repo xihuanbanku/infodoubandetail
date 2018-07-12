@@ -95,10 +95,10 @@ class DoubanPipeline(object):
                         self.inserIntoDB(item['uid'], item['pptv_url'], 16)
                     if item['mgtv_url']:
                         self.inserIntoDB(item['uid'], item['mgtv_url'], 5)
-                    self.loggerWithTime("==> success to insert into table DOUBAN!")
+                    self.loggerWithTime("==>[%s] success to insert into table DOUBAN!" %(item['uid']))
                     self.cursor.execute("UPDATE public.tb_movie_url_task set flag=1, atime=now() WHERE url='{}'".format(item['url'].decode('utf-8')))
                     self.db.commit()
-                    self.loggerWithTime("==> success to update into table DOUBAN!")
+                    self.loggerWithTime("==>[%s] success to update into table DOUBAN!" %(item['uid']))
         except Exception as e:
             self.loggerWithTime("DoubanPipeline ERROR %s" % e)
             self.db.rollback()
