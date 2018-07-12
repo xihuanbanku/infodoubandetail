@@ -103,8 +103,8 @@ class DoubanPipeline(object):
         except Exception as e:
             self.cursor.execute("UPDATE public.tb_movie_url_task set flag=2, atime=now() WHERE url='{}'".format(item['url'].decode('utf-8')))
             self.loggerWithTime("[%s]DoubanPipeline ERROR update tb_movie_url_task flag=2[%s]" %(item['uid'], e.message))
-            traceback.print_exc()
             self.db.commit()
+            traceback.print_exc()
 
     def _del__(self):
         self.db.close()
@@ -116,7 +116,7 @@ class DoubanPipeline(object):
             i += 1
             self.cursor.execute("""INSERT INTO "public"."tb_media_meta_url_map" 
                           ("media_uid", "url", "episode", "app_id") 
-                          VALUES (%s, %s, %s, %s)""", \
+                          VALUES (%s, %s, %s, %s) on conflict (url) do update set c_count=tb_media_meta_url_map.c_count+1""", \
                                 (uid, url_link, i, app_id))
         self.loggerWithTime("[%s]可播放连接入库tb_media_meta_url_map[%s]共[%s]集"%(uid,app_id,i))
 
