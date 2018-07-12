@@ -6,6 +6,7 @@ import time
 import urllib2
 from collections import OrderedDict
 
+import requests
 from bs4 import BeautifulSoup
 
 
@@ -56,23 +57,26 @@ class MovieParser(object):
     @property
     def scriptwriters(self):
         scriptwriters_info = self.soup.find_all('span', {'class': 'attrs'})
-        return scriptwriters_info[1].get_text().replace(' / ', '/') if scriptwriters_info else ''
+        if len(scriptwriters_info) > 1:
+            return scriptwriters_info[1].get_text().replace(' / ', '/') if scriptwriters_info else ''
+        else:
+            ''
 
     # 演员
     @property
     def actors(self):
         actors_list = self.soup.find_all('a', {'rel': 'v:starring'})
-        if len(actors_list)>1:
+        if len(actors_list) > 1:
             actors_list = [ele.get_text() for ele in actors_list]
             return '/'.join(actors_list)
         else:
-            return actors_list.get_text()
+            return actors_list.get_text() if actors_list else ''
 
     # 影片类型
     @property
     def types(self):
         movie_type = self.soup.find_all('span', {'property': 'v:genre'})
-        if len(movie_type) >1:
+        if len(movie_type) > 1:
             movie_type_list = [ele.get_text() for ele in movie_type]
             return '/'.join(movie_type_list)
         else:
@@ -108,7 +112,7 @@ class MovieParser(object):
     def duration(self):
         duration = self.soup.find('span', {'property': 'v:runtime'})  # 是电影定位电影片长
         if duration:
-            return duration.get_text()
+            return duration.get_text() if duration else ''
         
         else:  # 是电视剧定位单集时长
             other_info = self.soup.find('div', id='info')
@@ -134,7 +138,7 @@ class MovieParser(object):
     def description(self):
         description_info = self.soup.find('span', {'property': 'v:summary'})
         if description_info:
-            description = re.sub(' |\n|\t','',description_info.get_text())
+            description = re.sub(' |\n|\t', '', description_info.get_text())
             return description.strip()
         else:
             return ''
@@ -186,14 +190,17 @@ class MovieParser(object):
 
     # movie teplay_link link parser
     def get_source_link(self, movie_item):
-        r = re.compile('url=(.*)%3F')
-        teleplay_pa = re.compile("https://www.douban_info.com/link2/\?url=(.*);subtype=")
+        nomal_regex = re.compile('url=(.*)%3F')
+        youku_regex = re.compile('url%3D(.*)&subtype')
+        teleplay_pa = re.compile("http://www.douban.com/link2/\?url=(.*)%3F")
+        #http: // www.douban.com / link2 /?url =
         # teleplay_pa = re.compile("http://www.douban.com/(.*)")
         movie_source_urls = OrderedDict()  # 定义一个有序字典用来盛放此资源对应的各个源播放网站的连接
         # 判断视频标签是否在特定标签内
         isfilm = self.iselsejudge(movie_item["types"])
         if movie_item['media_episoders'] == ''and not isfilm:  # 判断电影的条件，集数标签是空，且遍历media_type2的类型，关键字不含有特定字段的
-            self.loggerWithTime("检测url类型是[1],电影")
+            self.loggerWithTime("[%s]检测url类型是[1],电影"%movie_item["uid"])
+
             movie_item['movie_type'] = 1
             movie_item['media_episoders'] = '1'   # 如果是电影，重置为1
             movie_urls = [link.attrs["href"] for link in self.soup.find_all('a',{"class":"playBtn"})]  # 拿到了豆瓣中各个网站播放此资源的URL
@@ -201,22 +208,28 @@ class MovieParser(object):
                 if movie_urls != []:
                     for link in movie_urls:
                         if not movie_source_urls.get(value):  # 如果是空
-                            movie_source_urls[value] = [urllib2.unquote(r.findall(link)[0])] if key in link else []
+                            if key == "youku.com" and link.find("redirect") >= 0:
+                                movie_source_urls[value] = [urllib2.unquote(youku_regex.findall(link)[0])] if key in link else []
+                            else:
+                                movie_source_urls[value] = [urllib2.unquote(nomal_regex.findall(link)[0])] if key in link else []
                 else:
                      movie_source_urls[value] = []
         elif movie_item['media_episoders'] != ''and not isfilm:  # 判断是电视剧，集数标签返回不是‘’，且判断不是其他类型标签
-            self.loggerWithTime("检测url类型是[2],电视剧")
+            self.loggerWithTime("[%s]检测url类型是[2],电视剧"%movie_item["uid"])
             movie_item['movie_type'] = 2  # 电视剧
-            movie_urls = teleplay_pa.findall(self.soup.prettify())
-            for key,value in self.domain_rules.items():
+            # movie_urls = teleplay_pa.findall(self.soup.prettify())
+            js_url = self.soup.find(self.find_urls_from_js)
+            js_response = requests.get(js_url.attrs.get("src"))
+            movie_urls = teleplay_pa.findall(js_response.text)
+            for key, value in self.domain_rules.items():
                 if movie_urls != []:
                     for link in movie_urls:
                         if not movie_source_urls.get(value):
-                            movie_source_urls[value] = [urllib2.unquote(r.findall(link)[0]) for link in movie_urls if key in link]
+                            movie_source_urls[value] = [urllib2.unquote(link) for link in movie_urls if key in link]
                 else:
                     movie_source_urls[value] = []
         else:
-            self.loggerWithTime("检测url类型是[99],其他")
+            self.loggerWithTime("[%s]检测url类型是[99],其他"%movie_item["uid"])
             movie_item['movie_type'] = 99
             for key,value in self.domain_rules.items():
                 movie_source_urls[value] = []
@@ -234,3 +247,10 @@ class MovieParser(object):
     def loggerWithTime(self, message):
         now = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))
         print("[%s][%s]"%(now, message))
+
+    # 电视剧的特殊处理, 查找js中对应的可播放连接
+    def find_urls_from_js(self, tag):
+        if tag.name == 'script' \
+                and "https://img3.doubanio.com/misc/mixed_static/" in tag.attrs.get("src","")\
+                and len(tag.parent.attrs) == 0:
+            return True
