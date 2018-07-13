@@ -19,7 +19,7 @@ class MovieGatherSpider(scrapy.Spider):
 
     def __init__(self):
         self.cookie={}
-        cookies = 'dbcl2="181047627:tIdljJLoX/M"'
+        cookies = 'dbcl2="104718627:tIX/MLodljJ"'
         for line in cookies.split(';'):
             key,value = line.strip().split('=', 1) #1代表只分一次，得到两个数据
             self.cookie[key] = value.replace('"','')
@@ -40,8 +40,14 @@ class MovieGatherSpider(scrapy.Spider):
         movie_links = self.get_movie_links()
         for movie_link, in movie_links:
             movie_item['url'] = movie_link
-            movie_item['uid'] = re.sub("\D", "",movie_link)
+            movie_item['uid'] = re.sub("\D", "", movie_link)
             page_html = requests.get(url =movie_link,cookies = self.cookie).content
+            if page_html.find("页面不存在") >=0:
+                self.loggerWithTime("[%s]页面不存在" % movie_item['uid'])
+                links_sql = "update public.tb_movie_url_task set flag=404 where url ='%s'" % movie_item['url']
+                self.cur.execute(links_sql)
+                self.db.commit()
+                break
             if page_html.find("检测到有异常请求") >=0:
                 self.loggerWithTime(page_html)
                 self.loggerWithTime("开始休眠")
@@ -60,5 +66,5 @@ class MovieGatherSpider(scrapy.Spider):
 
     #打印当前时间的消息
     def loggerWithTime(self, message):
-        now = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))
-        print("[%s][%s]"%(now, message))
+        now = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
+        print("[%s][%s]" % (now, message))
