@@ -69,7 +69,7 @@ class MovieParser(object):
         if len(actors_list) > 1:
             actors_list = [ele.get_text() for ele in actors_list]
             return '/'.join(actors_list)
-        elif len(actors_list == 1):
+        elif len(actors_list) == 1:
             return actors_list[0].get_text() if actors_list else ''
         else:
             return ''
