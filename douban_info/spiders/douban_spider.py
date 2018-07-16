@@ -3,6 +3,9 @@
 import re
 import time
 from random import random
+import sys
+reload(sys)
+sys.setdefaultencoding('utf-8')
 
 import psycopg2
 import requests
@@ -45,6 +48,12 @@ class MovieGatherSpider(scrapy.Spider):
             if page_html.find("页面不存在") >=0:
                 self.loggerWithTime("[%s]页面不存在" % movie_item['uid'])
                 links_sql = "update public.tb_movie_url_task set flag=404 where url ='%s'" % movie_item['url']
+                self.cur.execute(links_sql)
+                self.db.commit()
+                break
+            if page_html.find("条目不存在") >=0:
+                self.loggerWithTime("[%s]条目不存在" % movie_item['uid'])
+                links_sql = "update public.tb_movie_url_task set flag=403 where url ='%s'" % movie_item['url']
                 self.cur.execute(links_sql)
                 self.db.commit()
                 break

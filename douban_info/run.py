@@ -7,7 +7,7 @@ from scrapy import cmdline
 
 while True:
 # if 1:
-#     cmdline.execute('scrapy crawl douban_info --nolog'.split())
+#     cmdline.execute('scrapy crawl douban_info'.split())
     print("starting...")
     subprocess.call('scrapy crawl douban_info --nolog', shell=True)
     print("休眠")
