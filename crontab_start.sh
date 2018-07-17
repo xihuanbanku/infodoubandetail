@@ -14,7 +14,7 @@ then
     echo `date`"[停止完成]" >> nohup.out
 else
     echo `date`"[IP解除限制, 检查是否已经启动过爬虫...]"
-    pid=`pgrep -f "douban_info"`
+    pid=`pgrep -f "douban_info/run"`
     sleep 3
     if [ ${pid} > 0 ]
     then
