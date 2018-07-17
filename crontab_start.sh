@@ -13,14 +13,14 @@ then
     sleep 3
     echo `date`"[停止完成]" >> nohup.out
 else
-    echo `date`"[IP解除限制, 检查是否已经启动过爬虫...]"
+    echo `date`"[IP解除限制, 检查是否已经启动过爬虫...]" >> nohup.out
     pid=`pgrep -f "douban_info/run"`
     sleep 3
     if [ ${pid} > 0 ]
     then
-        echo `date`"[爬虫已经启动pid[${pid}], 直接退出...]"
+        echo `date`"[爬虫已经启动pid[${pid}], 直接退出...]" >> nohup.out
     else
-        echo `date`"[爬虫没有启动, starting...]"
+        echo `date`"[爬虫没有启动, starting...]" >> nohup.out
         sh start.sh
         sleep 3
         echo `date`"[启动成功]" >> nohup.out
